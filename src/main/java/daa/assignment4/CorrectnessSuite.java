@@ -4,6 +4,7 @@ import daa.assignment4.dp.EditDistance;
 import daa.assignment4.dp.LongestCommonSubsequence;
 import daa.assignment4.matching.Kmp;
 import daa.assignment4.matching.Naive;
+import daa.assignment4.matching.RabinKarp;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
@@ -151,6 +152,13 @@ public final class CorrectnessSuite {
         expectThrows(NullPointerException.class, () -> Naive.run("a", null));
         expectThrows(NullPointerException.class, () -> Kmp.run(null, "a"));
         expectThrows(NullPointerException.class, () -> Kmp.run("a", null));
+        expectThrows(NullPointerException.class, () -> RabinKarp.run(null, "a"));
+        expectThrows(NullPointerException.class, () -> RabinKarp.run("a", null));
+        // Base 256 causes these distinct two-character strings to have the same hash.
+        checkMatching("\u0001\u0000", "\u0000\u0100", List.of());
+        require(RabinKarp.run("\u0001\u0000", "\u0000\u0100").searchComparisons() > 0,
+                "A hash collision is verified character by character");
+        checkMatching("\u0000\u0100\u0001\u0000\u0000\u0100", "\u0000\u0100", List.of(0, 4));
         Random random = new Random(42);
         for (int trial = 0; trial < 500; trial++) {
             String text = randomString(random, random.nextInt(35));
@@ -170,6 +178,7 @@ public final class CorrectnessSuite {
     private static void checkMatching(String text, String pattern, List<Integer> expected) {
         require(Naive.run(text, pattern).positions().equals(expected), "Naive occurrences match");
         require(Kmp.run(text, pattern).positions().equals(expected), "KMP occurrences match");
+        require(RabinKarp.run(text, pattern).positions().equals(expected), "Rabin-Karp occurrences match");
     }
 
     private static String randomString(Random random, int length) {

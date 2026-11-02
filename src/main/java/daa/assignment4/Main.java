@@ -2,6 +2,7 @@ package daa.assignment4;
 
 import daa.assignment4.matching.Kmp;
 import daa.assignment4.matching.Naive;
+import daa.assignment4.matching.RabinKarp;
 import daa.assignment4.dp.EditDistance;
 import daa.assignment4.dp.LongestCommonSubsequence;
 
@@ -33,6 +34,7 @@ public final class Main {
 
         System.out.println("Naive matches: " + Naive.run("abababa", "aba").positions());
         System.out.println("KMP matches: " + Kmp.run("abababa", "aba").positions());
+        System.out.println("Rabin-Karp matches: " + RabinKarp.run("abababa", "aba").positions());
 
         String source = "kitten";
         String target = "sitting";

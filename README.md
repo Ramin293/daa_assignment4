@@ -4,7 +4,7 @@
 
 This Java project studies longest common subsequences (LCS), Levenshtein edit distance, Naive string matching, Knuth-Morris-Pratt (KMP), Rabin-Karp, and Kasai's longest common prefix (LCP) array algorithm.
 
-The first three development milestones implement Naive and KMP matching, table-based LCS, and Levenshtein edit distance, operation counting, a demonstration, and a correctness suite. The remaining algorithms and experimental report will be added in the commits listed below. This README is the report; no separate PDF report is required.
+The first four development milestones implement Naive, KMP, and Rabin-Karp matching, table-based LCS, and Levenshtein edit distance, operation counting, a demonstration, and a correctness suite. The remaining algorithms and experimental report will be added in the commits listed below. This README is the report; no separate PDF report is required.
 
 ## How to run
 
@@ -45,6 +45,8 @@ The three choices delete the final source character, insert the final target cha
 
 `Naive.run` checks the pattern at every possible text position. `Kmp.run` first builds the longest proper prefix which is also a suffix (LPS) for each pattern prefix. On a mismatch it uses LPS to retain a previously matched suffix as the next candidate prefix, without moving the text index backward. After a match it also falls back through LPS, so overlapping matches are included. Both return immutable, ascending lists of all starting indices and separate counts of character comparisons in preprocessing and search. An empty pattern occurs at every boundary from 0 through the text length, inclusive. Positions and comparisons use UTF-16 code units; null inputs are rejected.
 
+`RabinKarp.run` hashes the pattern and first text window with base 256 and modulus 1,000,000,007. Rolling the hash removes the outgoing code unit and adds the incoming one. Equal hashes are verified character by character, preventing false matches from collisions. Search comparisons count these character checks; hash arithmetic is not counted. Preprocessing comparisons are zero because hashing compares no characters. Empty patterns and returned indices follow the same rules as the other matchers.
+
 ## Complexity analysis
 
 Here `m` and `n` are the two input lengths. Auxiliary space excludes the input strings and constant-size result.
@@ -60,8 +62,11 @@ For matching, let `N` be text length, `M` pattern length, and `K` the number of 
 | --- | --- | --- | --- | --- | --- | --- |
 | Naive | Compare each candidate window | O(1) | O(max(1, N - M + 1)) | O(max(1, N - M + 1) M) | O(1) | A mismatch can stop a window immediately; repeated prefixes can require M comparisons per window. If M > N there are no windows. |
 | KMP | LPS fallback on mismatch | O(M) time and space | O(N) | O(N) | O(M) | Text never moves backward; matched-prefix increases and decreases total O(N), and LPS construction is O(M). |
+| Rabin-Karp | Roll window hash; verify equal hashes | O(M) time, O(1) space when M <= N | O(N - M + 1) | O((N - M + 1) M) | O(1) | Hashing each window takes constant time; each equal hash may require M comparisons. If M > N the implementation returns in O(1). |
 
-KMP scans the full text even when the pattern is longer. For the empty pattern both implementations enumerate N + 1 output positions in O(N + 1) time, with O(1) auxiliary space besides the output.
+KMP scans the full text even when the pattern is longer. For the empty pattern all three implementations enumerate N + 1 output positions in O(N + 1) time, with O(1) auxiliary space besides the output.
+
+Under suitable random-hashing assumptions and with few matches, Rabin-Karp typically takes O(N + M) total time. This implementation uses a fixed hash, so that expected bound is not guaranteed for arbitrary inputs. Many true matches or collisions can require O((N - M + 1) M) verification work.
 
 For nonempty strings these bounds simplify to `O(mn)`. The explicit factors also account for table allocation when either input is empty. The operation counter records exactly `mn` cells, excluding base-case initialization. Bounds for the remaining algorithms will accompany their implementations. Theoretical bounds are separate from measured execution times.
 
@@ -87,11 +92,11 @@ An independent exhaustive reference enumerates subsequences on 200 reproducible 
 
 Edit Distance tests cover identical strings, either or both inputs empty, individual substitutions, insertions and deletions, mixed edits, completely different strings, repeated characters, transposition requiring two edits, case sensitivity, whitespace, punctuation, Cyrillic characters, and null rejection. Another 200 reproducible pairs of strings of length at most five are checked in both directions against an exhaustive recursive reference without a DP table. Each distance check also verifies the `mn` cell count. The complete suite also includes the matching checks described below.
 
-Matching tests cover beginning, middle, end, overlapping occurrences, absent and longer patterns, empty text and pattern, and KMP fallback. On 500 fixed-seed random pairs, both algorithms are checked against an independent `String.startsWith` reference. Null rejection and immutable results are also tested.
+Matching tests cover beginning, middle, end, overlapping occurrences, absent and longer patterns, empty text and pattern, and KMP fallback. On 500 fixed-seed random pairs, all three algorithms are checked against an independent `String.startsWith` reference. Null rejection and immutable results are also tested. A deliberately constructed hash collision verifies that Rabin-Karp checks characters before reporting an occurrence. The full suite passes 3200 checks.
 
 ## Conclusion
 
-The first three milestones provide runnable, verified LCS, Edit Distance, Naive, and KMP implementations. Both use full DP tables with quadratic time and space for equal nonempty input lengths. The final conclusion will compare all six algorithms after the remaining implementations and experiments are complete.
+The first four milestones provide runnable, verified LCS, Edit Distance, Naive, KMP, and Rabin-Karp implementations. Both use full DP tables with quadratic time and space for equal nonempty input lengths. The final conclusion will compare all six algorithms after the remaining implementations and experiments are complete.
 
 ## Development plan
 
