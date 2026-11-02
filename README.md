@@ -4,7 +4,7 @@
 
 This Java project studies longest common subsequences (LCS), Levenshtein edit distance, Naive string matching, Knuth-Morris-Pratt (KMP), Rabin-Karp, and Kasai's longest common prefix (LCP) array algorithm.
 
-The first two development milestones implement table-based LCS and Levenshtein edit distance, operation counting, a demonstration, and a correctness suite. The remaining algorithms and experimental report will be added in the commits listed below. This README is the report; no separate PDF report is required.
+The first three development milestones implement Naive and KMP matching, table-based LCS, and Levenshtein edit distance, operation counting, a demonstration, and a correctness suite. The remaining algorithms and experimental report will be added in the commits listed below. This README is the report; no separate PDF report is required.
 
 ## How to run
 
@@ -43,6 +43,8 @@ For source and target prefixes of lengths `i` and `j`, let `E[i][j]` be their ed
 
 The three choices delete the final source character, insert the final target character, or match/substitute the final pair. Every optimal alignment ends in one of these choices; its remaining prefix alignment must also be optimal, or replacing it would reduce the total cost. Conversely, extending an optimal smaller alignment by any of these choices gives a valid transformation. Taking the minimum therefore gives the exact distance. Row-by-row evaluation satisfies all dependencies. For example, `kitten -> sitting` costs three edits: substitute `k -> s`, substitute `e -> i`, and insert `g`.
 
+`Naive.run` checks the pattern at every possible text position. `Kmp.run` first builds the longest proper prefix which is also a suffix (LPS) for each pattern prefix. On a mismatch it uses LPS to retain a previously matched suffix as the next candidate prefix, without moving the text index backward. After a match it also falls back through LPS, so overlapping matches are included. Both return immutable, ascending lists of all starting indices and separate counts of character comparisons in preprocessing and search. An empty pattern occurs at every boundary from 0 through the text length, inclusive. Positions and comparisons use UTF-16 code units; null inputs are rejected.
+
 ## Complexity analysis
 
 Here `m` and `n` are the two input lengths. Auxiliary space excludes the input strings and constant-size result.
@@ -51,6 +53,15 @@ Here `m` and `n` are the two input lengths. Auxiliary space excludes the input s
 | --- | --- | --- | --- | --- | --- |
 | LCS | Equal: diagonal + 1; unequal: max of top and left | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | Allocate and initialize the full table; evaluate all `mn` non-base cells regardless of content. |
 | Edit Distance | Min of deletion + 1, insertion + 1, and diagonal + mismatch cost | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | Initialize the boundary row and column; evaluate all `mn` non-base cells with constant work per cell. |
+
+For matching, let `N` be text length, `M` pattern length, and `K` the number of returned positions. The output list takes `O(K)` space and is excluded from auxiliary-space bounds. For nonempty patterns:
+
+| Algorithm | Main operation | Preprocessing | Best-case search | Worst-case search | Auxiliary space | Justification |
+| --- | --- | --- | --- | --- | --- | --- |
+| Naive | Compare each candidate window | O(1) | O(max(1, N - M + 1)) | O(max(1, N - M + 1) M) | O(1) | A mismatch can stop a window immediately; repeated prefixes can require M comparisons per window. If M > N there are no windows. |
+| KMP | LPS fallback on mismatch | O(M) time and space | O(N) | O(N) | O(M) | Text never moves backward; matched-prefix increases and decreases total O(N), and LPS construction is O(M). |
+
+KMP scans the full text even when the pattern is longer. For the empty pattern both implementations enumerate N + 1 output positions in O(N + 1) time, with O(1) auxiliary space besides the output.
 
 For nonempty strings these bounds simplify to `O(mn)`. The explicit factors also account for table allocation when either input is empty. The operation counter records exactly `mn` cells, excluding base-case initialization. Bounds for the remaining algorithms will accompany their implementations. Theoretical bounds are separate from measured execution times.
 
@@ -74,11 +85,13 @@ LCS and Edit Distance perform the same number of table-cell updates for a given 
 
 An independent exhaustive reference enumerates subsequences on 200 reproducible pairs of small strings over `abc`. Both input orders are checked against the reference. Every length check also verifies the `mn` cell count.
 
-Edit Distance tests cover identical strings, either or both inputs empty, individual substitutions, insertions and deletions, mixed edits, completely different strings, repeated characters, transposition requiring two edits, case sensitivity, whitespace, punctuation, Cyrillic characters, and null rejection. Another 200 reproducible pairs of strings of length at most five are checked in both directions against an exhaustive recursive reference without a DP table. Each distance check also verifies the `mn` cell count. The complete suite prints `PASS: 1656 checks` on success.
+Edit Distance tests cover identical strings, either or both inputs empty, individual substitutions, insertions and deletions, mixed edits, completely different strings, repeated characters, transposition requiring two edits, case sensitivity, whitespace, punctuation, Cyrillic characters, and null rejection. Another 200 reproducible pairs of strings of length at most five are checked in both directions against an exhaustive recursive reference without a DP table. Each distance check also verifies the `mn` cell count. The complete suite also includes the matching checks described below.
+
+Matching tests cover beginning, middle, end, overlapping occurrences, absent and longer patterns, empty text and pattern, and KMP fallback. On 500 fixed-seed random pairs, both algorithms are checked against an independent `String.startsWith` reference. Null rejection and immutable results are also tested.
 
 ## Conclusion
 
-The first two milestones provide runnable, verified LCS and Edit Distance implementations. Both use full DP tables with quadratic time and space for equal nonempty input lengths. The final conclusion will compare all six algorithms after the remaining implementations and experiments are complete.
+The first three milestones provide runnable, verified LCS, Edit Distance, Naive, and KMP implementations. Both use full DP tables with quadratic time and space for equal nonempty input lengths. The final conclusion will compare all six algorithms after the remaining implementations and experiments are complete.
 
 ## Development plan
 

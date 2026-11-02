@@ -2,6 +2,10 @@ package daa.assignment4;
 
 import daa.assignment4.dp.EditDistance;
 import daa.assignment4.dp.LongestCommonSubsequence;
+import daa.assignment4.matching.Kmp;
+import daa.assignment4.matching.Naive;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Random;
 
 public final class CorrectnessSuite {
@@ -13,6 +17,7 @@ public final class CorrectnessSuite {
         checks = 0;
         longestCommonSubsequences();
         editDistances();
+        stringMatching();
         return "PASS: " + checks + " checks";
     }
 
@@ -129,6 +134,42 @@ public final class CorrectnessSuite {
         return 1 + Math.min(recursiveEditDistance(first, second, row - 1, column - 1),
                 Math.min(recursiveEditDistance(first, second, row - 1, column),
                         recursiveEditDistance(first, second, row, column - 1)));
+    }
+
+    private static void stringMatching() {
+        checkMatching("abcabc", "abc", List.of(0, 3));
+        checkMatching("xxabcxx", "abc", List.of(2));
+        checkMatching("xxabc", "abc", List.of(2));
+        checkMatching("aaaaa", "aa", List.of(0, 1, 2, 3));
+        checkMatching("abc", "z", List.of());
+        checkMatching("ab", "abc", List.of());
+        checkMatching("abc", "", List.of(0, 1, 2, 3));
+        checkMatching("", "", List.of(0));
+        checkMatching("", "a", List.of());
+        checkMatching("ababababac", "ababac", List.of(4));
+        expectThrows(NullPointerException.class, () -> Naive.run(null, "a"));
+        expectThrows(NullPointerException.class, () -> Naive.run("a", null));
+        expectThrows(NullPointerException.class, () -> Kmp.run(null, "a"));
+        expectThrows(NullPointerException.class, () -> Kmp.run("a", null));
+        Random random = new Random(42);
+        for (int trial = 0; trial < 500; trial++) {
+            String text = randomString(random, random.nextInt(35));
+            String pattern = randomString(random, random.nextInt(10));
+            List<Integer> expected = new ArrayList<>();
+            for (int start = 0; start <= text.length() - pattern.length(); start++) {
+                if (text.startsWith(pattern, start)) {
+                    expected.add(start);
+                }
+            }
+            checkMatching(text, pattern, expected);
+        }
+        expectThrows(UnsupportedOperationException.class,
+                () -> Kmp.run("aaa", "a").positions().clear());
+    }
+
+    private static void checkMatching(String text, String pattern, List<Integer> expected) {
+        require(Naive.run(text, pattern).positions().equals(expected), "Naive occurrences match");
+        require(Kmp.run(text, pattern).positions().equals(expected), "KMP occurrences match");
     }
 
     private static String randomString(Random random, int length) {
