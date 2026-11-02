@@ -1,0 +1,28 @@
+algorithm,workload,size,pattern_length,mean_ns,preprocessing_comparisons,operations,outcome
+LCS,random,100,0,262780.0,0,10000,28
+Edit Distance,random,100,0,356340.0,0,10000,93
+LCS,random,500,0,710380.0,0,250000,159
+Edit Distance,random,500,0,728200.0,0,250000,439
+LCS,random,1000,0,2204240.0,0,1000000,315
+Edit Distance,random,1000,0,3746680.0,0,1000000,889
+Naive,present,10000,16,251260.0,0,10388,1
+KMP,present,10000,16,201500.0,15,10371,1
+Rabin-Karp,present,10000,16,333120.0,0,16,1
+Naive,absent,10000,16,104040.0,0,10404,0
+KMP,absent,10000,16,77940.0,17,10398,0
+Rabin-Karp,absent,10000,16,140300.0,0,0,0
+Naive,present,50000,16,191640.0,0,52043,1
+KMP,present,50000,16,123940.0,16,51964,1
+Rabin-Karp,present,50000,16,534880.0,0,16,1
+Naive,absent,50000,16,118020.0,0,51991,0
+KMP,absent,50000,16,129760.0,15,51925,0
+Rabin-Karp,absent,50000,16,411360.0,0,0,0
+Naive,present,100000,16,231740.0,0,103906,1
+KMP,present,100000,16,126180.0,15,103747,1
+Rabin-Karp,present,100000,16,656960.0,0,16,1
+Naive,absent,100000,16,229400.0,0,103940,0
+KMP,absent,100000,16,138600.0,15,103819,0
+Rabin-Karp,absent,100000,16,656360.0,0,0,0
+Kasai,random,1000,0,116600.0,0,1972,-1456963061
+Kasai,random,5000,0,441580.0,0,9970,1254230736
+Kasai,random,10000,0,365700.0,0,19970,2083112495

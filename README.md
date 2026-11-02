@@ -4,7 +4,7 @@
 
 This Java project studies longest common subsequences (LCS), Levenshtein edit distance, Naive string matching, Knuth-Morris-Pratt (KMP), Rabin-Karp, and Kasai's longest common prefix (LCP) array algorithm.
 
-The first five development milestones implement Kasai, Naive, KMP, Rabin-Karp, table-based LCS, and Levenshtein edit distance, operation counting, a demonstration, and a correctness suite. The remaining algorithms and experimental report will be added in the commits listed below. This README is the report; no separate PDF report is required.
+The first six development milestones implement Kasai, Naive, KMP, Rabin-Karp, table-based LCS, and Levenshtein edit distance, operation counting, a demonstration, and a correctness suite. The experiments and result tables are included; plots and the final discussion will follow. This README is the report; no separate PDF report is required.
 
 ## How to run
 
@@ -13,10 +13,11 @@ Use Java JDK 17 or newer. From the project folder on Windows:
 ```powershell
 .\run.cmd demo
 .\run.cmd test
+.\run.cmd benchmark
 .\run.cmd all
 ```
 
-The launcher compiles the Java sources automatically. `all` runs the tests and demonstration. Double-clicking `run.cmd` runs the demonstration and waits for a key before closing. No external Java dependencies are required.
+The launcher compiles the Java sources automatically. `all` runs the tests, demonstration, and benchmark. Benchmarking overwrites `results/results.csv` and `results/tables/summary.md`. Double-clicking `run.cmd` runs the demonstration and waits for a key before closing. No external Java dependencies are required.
 
 Alternatively, compile and run directly from PowerShell:
 
@@ -27,6 +28,7 @@ $sources = Get-ChildItem src/main/java -Filter *.java -Recurse | ForEach-Object 
 javac -encoding UTF-8 --release 17 -d $classes $sources
 java -cp $classes daa.assignment4.Main --test
 java -cp $classes daa.assignment4.Main --demo
+java -cp $classes daa.assignment4.Main --benchmark results/results.csv
 ```
 
 ## Implementation
@@ -78,17 +80,19 @@ For nonempty strings these bounds simplify to `O(mn)`. The explicit factors also
 
 ## Experimental setup
 
-Planned workloads follow the assignment: LCS and Edit Distance use two strings of length 100, 500, and 1,000; matching uses text lengths 10,000, 50,000, and 100,000; Kasai uses lengths 1,000, 5,000, and 10,000. Random inputs will use fixed seed `42` and the lowercase English alphabet `abcdefghijklmnopqrstuvwxyz`.
+LCS and Edit Distance use pairs of lengths 100, 500, and 1,000; matching uses text lengths 10,000, 50,000, and 100,000; Kasai uses lengths 1,000, 5,000, and 10,000. One `java.util.Random` instance with fixed seed `42` generates lowercase English letters `abcdefghijklmnopqrstuvwxyz` uniformly. For each matching text, the present pattern is its 16-character substring at the middle; an absent pattern of length 16 is generated until it is absent. The same text and pattern are passed to all three matchers, and their complete occurrence lists are checked for equality before timing.
 
-Algorithms solving the same task will receive identical inputs. Matching comparisons will include present and absent patterns. Each measured experiment will run five times using `System.nanoTime()`, reporting the arithmetic mean and relevant operation counts. Input generation, suffix-array preparation, console output, and file operations will be outside timed regions.
+Each algorithm and input receives three warm-up runs and five measured runs. `System.nanoTime()` surrounds the algorithm call, including its result allocation, preprocessing and validation. Input generation, suffix-array construction, cross-algorithm validation, result summarization, console output, and file writes are outside timed regions. A straightforward lexicographic suffix sort prepares Kasai's input outside the timed region. Every repetition is checked for identical outcome and operation counts. The CSV reports arithmetic mean nanoseconds; times depend on the JVM, machine, and system load.
+
+The operation column counts non-base DP cells, matching search character comparisons, or Kasai prefix-extension character comparisons. KMP preprocessing comparisons are separate. Hash arithmetic and Kasai suffix-array validation comparisons are not included in those character counts, although their execution time is included. Outcomes are DP values, match counts, or a hash of Kasai's LCP list, respectively.
 
 ## Results
 
-No timing experiments have been run in this milestone. Raw CSV, result tables, and the two required plots will be added after all algorithms are implemented.
+The [raw CSV](results/results.csv) and [summary tables](results/tables/summary.md) contain all 27 algorithm, size, and workload combinations. Plots and a detailed discussion will be added in the final milestone.
 
 ## Comparison and discussion
 
-LCS and Edit Distance perform the same number of table-cell updates for a given pair of lengths, even when strings are identical or have no shared characters. Their full tables make the recurrences explicit but require quadratic space for equal input lengths. Equal cell counts do not imply equal execution times because the operations within each cell differ. LCS measures retained order-preserving similarity; Edit Distance measures transformation cost and allows unit-cost substitutions. Experimental comparisons are pending.
+LCS and Edit Distance perform the same number of table-cell updates for a given pair of lengths, even when strings are identical or have no shared characters. Their full tables make the recurrences explicit but require quadratic space for equal input lengths. Equal cell counts do not imply equal execution times because the operations within each cell differ. LCS measures retained order-preserving similarity; Edit Distance measures transformation cost and allows unit-cost substitutions. The saved measurements are available in the result tables; the final milestone will add plots and detailed discussion.
 
 ## Testing
 
@@ -104,7 +108,7 @@ Kasai tests include the manually verified `banana` suffix and LCP arrays, empty 
 
 ## Conclusion
 
-All required algorithms are implemented and tested. LCS and Edit Distance use full DP tables with quadratic time and space for equal nonempty input lengths. The final conclusion will compare all six algorithms after experiments are complete.
+All required algorithms are implemented and tested. LCS and Edit Distance use full DP tables with quadratic time and space for equal nonempty input lengths. The final conclusion will compare all six algorithms after the plots and experimental discussion are complete.
 
 ## Development plan
 
@@ -118,4 +122,4 @@ All required algorithms are implemented and tested. LCS and Edit Distance use fu
 
 ## AI acknowledgement
 
-AI assisted with the code, documentation, and development plan. No experimental timing values have been generated or claimed in this milestone.
+AI assisted with the code, documentation, and development plan. Timing values in the repository were generated by the Java benchmark.
