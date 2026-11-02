@@ -1,0 +1,14 @@
+target/
+*.class
+.idea/
+*.iml
+.vscode/
+.venv/
+__pycache__/
+*.pyc
+.codex/
+.agents/
+.DS_Store
+Thumbs.db
+tmp/
+Assignment 4.pdf
