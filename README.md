@@ -4,7 +4,7 @@
 
 This Java project studies longest common subsequences (LCS), Levenshtein edit distance, Naive string matching, Knuth-Morris-Pratt (KMP), Rabin-Karp, and Kasai's longest common prefix (LCP) array algorithm.
 
-The first development milestone implements table-based LCS, operation counting, a demonstration, and a correctness suite. The remaining algorithms and experimental report will be added in the commits listed below. This README is the report; no separate PDF report is required.
+The first two development milestones implement table-based LCS and Levenshtein edit distance, operation counting, a demonstration, and a correctness suite. The remaining algorithms and experimental report will be added in the commits listed below. This README is the report; no separate PDF report is required.
 
 ## How to run
 
@@ -37,6 +37,12 @@ For prefixes of lengths `i` and `j`, let `D[i][j]` be their LCS length. The base
 
 An empty prefix has no nonempty subsequence. When the final characters match, an optimal common subsequence can use that character after an optimal solution for the shorter prefixes. Removing its last character leaves a common subsequence of those prefixes, so a longer answer is impossible. When the final characters differ, a common subsequence must omit at least one of them, giving the two smaller subproblems. Filling the table row by row computes every dependency before it is used.
 
+`EditDistance.run` returns an immutable `EditDistanceResult` containing the minimum edit count and the number of evaluated non-base cells. Insertion, deletion, and substitution each cost one; matching characters cost zero. Transposition is not a separate operation. The same case-sensitive UTF-16 and null-handling rules apply as for LCS. Only the distance is returned, without reconstructing an edit script.
+
+For source and target prefixes of lengths `i` and `j`, let `E[i][j]` be their edit distance. The base cases are `E[i][0] = i` (delete every source character) and `E[0][j] = j` (insert every target character). The recurrence is `E[i][j] = min(E[i-1][j] + 1, E[i][j-1] + 1, E[i-1][j-1] + cost)`, where `cost` is zero for equal final characters and one otherwise.
+
+The three choices delete the final source character, insert the final target character, or match/substitute the final pair. Every optimal alignment ends in one of these choices; its remaining prefix alignment must also be optimal, or replacing it would reduce the total cost. Conversely, extending an optimal smaller alignment by any of these choices gives a valid transformation. Taking the minimum therefore gives the exact distance. Row-by-row evaluation satisfies all dependencies. For example, `kitten -> sitting` costs three edits: substitute `k -> s`, substitute `e -> i`, and insert `g`.
+
 ## Complexity analysis
 
 Here `m` and `n` are the two input lengths. Auxiliary space excludes the input strings and constant-size result.
@@ -44,6 +50,7 @@ Here `m` and `n` are the two input lengths. Auxiliary space excludes the input s
 | Algorithm | Main operation or recurrence | Best-case time | Worst-case time | Auxiliary space | Justification |
 | --- | --- | --- | --- | --- | --- |
 | LCS | Equal: diagonal + 1; unequal: max of top and left | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | Allocate and initialize the full table; evaluate all `mn` non-base cells regardless of content. |
+| Edit Distance | Min of deletion + 1, insertion + 1, and diagonal + mismatch cost | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | Initialize the boundary row and column; evaluate all `mn` non-base cells with constant work per cell. |
 
 For nonempty strings these bounds simplify to `O(mn)`. The explicit factors also account for table allocation when either input is empty. The operation counter records exactly `mn` cells, excluding base-case initialization. Bounds for the remaining algorithms will accompany their implementations. Theoretical bounds are separate from measured execution times.
 
@@ -59,17 +66,19 @@ No timing experiments have been run in this milestone. Raw CSV, result tables, a
 
 ## Comparison and discussion
 
-LCS performs the same number of table-cell updates for a given pair of lengths, even when strings are identical or have no shared characters. Its full table makes the recurrence explicit but requires quadratic space for equal input lengths. Experimental comparisons are pending.
+LCS and Edit Distance perform the same number of table-cell updates for a given pair of lengths, even when strings are identical or have no shared characters. Their full tables make the recurrences explicit but require quadratic space for equal input lengths. Equal cell counts do not imply equal execution times because the operations within each cell differ. LCS measures retained order-preserving similarity; Edit Distance measures transformation cost and allows unit-cost substitutions. Experimental comparisons are pending.
 
 ## Testing
 
 `CorrectnessSuite` checks identical strings, completely different strings, either or both inputs empty, a known LCS of length four, repeated characters, non-contiguous subsequences, single characters, case sensitivity, whitespace, punctuation, Cyrillic characters, and null rejection.
 
-An independent exhaustive reference enumerates subsequences on 200 reproducible pairs of small strings over `abc`. Both input orders are checked against the reference. Every length check also verifies the `mn` cell count. The suite prints `PASS: 826 checks` on success.
+An independent exhaustive reference enumerates subsequences on 200 reproducible pairs of small strings over `abc`. Both input orders are checked against the reference. Every length check also verifies the `mn` cell count.
+
+Edit Distance tests cover identical strings, either or both inputs empty, individual substitutions, insertions and deletions, mixed edits, completely different strings, repeated characters, transposition requiring two edits, case sensitivity, whitespace, punctuation, Cyrillic characters, and null rejection. Another 200 reproducible pairs of strings of length at most five are checked in both directions against an exhaustive recursive reference without a DP table. Each distance check also verifies the `mn` cell count. The complete suite prints `PASS: 1656 checks` on success.
 
 ## Conclusion
 
-The first milestone provides a runnable, verified LCS foundation. The final conclusion will compare all six algorithms after the remaining implementations and experiments are complete.
+The first two milestones provide runnable, verified LCS and Edit Distance implementations. Both use full DP tables with quadratic time and space for equal nonempty input lengths. The final conclusion will compare all six algorithms after the remaining implementations and experiments are complete.
 
 ## Development plan
 

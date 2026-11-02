@@ -1,5 +1,6 @@
 package daa.assignment4;
 
+import daa.assignment4.dp.EditDistance;
 import daa.assignment4.dp.LongestCommonSubsequence;
 import java.util.Random;
 
@@ -11,6 +12,7 @@ public final class CorrectnessSuite {
     public static String runAll() {
         checks = 0;
         longestCommonSubsequences();
+        editDistances();
         return "PASS: " + checks + " checks";
     }
 
@@ -76,6 +78,57 @@ public final class CorrectnessSuite {
             }
         }
         return best;
+    }
+
+    private static void editDistances() {
+        checkEditDistance("algorithm", "algorithm", 0);
+        checkEditDistance("", "abc", 3);
+        checkEditDistance("abc", "", 3);
+        checkEditDistance("", "", 0);
+        checkEditDistance("cat", "cut", 1);
+        checkEditDistance("cat", "cart", 1);
+        checkEditDistance("cart", "cat", 1);
+        checkEditDistance("kitten", "sitting", 3);
+        checkEditDistance("abc", "XYZ", 3);
+        checkEditDistance("aaaa", "aa", 2);
+        checkEditDistance("ab", "ba", 2);
+        checkEditDistance("A", "a", 1);
+        checkEditDistance("a b!", "ab!", 1);
+        checkEditDistance("\u043a\u043e\u0442", "\u043a\u0438\u0442", 1);
+        expectThrows(NullPointerException.class, () -> EditDistance.run(null, "abc"));
+        expectThrows(NullPointerException.class, () -> EditDistance.run("abc", null));
+
+        Random random = new Random(42);
+        for (int trial = 0; trial < 200; trial++) {
+            String first = randomString(random, random.nextInt(6));
+            String second = randomString(random, random.nextInt(6));
+            int expected = recursiveEditDistance(first, second, first.length(), second.length());
+            checkEditDistance(first, second, expected);
+            checkEditDistance(second, first, expected);
+        }
+    }
+
+    private static void checkEditDistance(String first, String second, int expected) {
+        var result = EditDistance.run(first, second);
+        require(result.distance() == expected, "Edit distance matches expected value");
+        require(result.cellsEvaluated() == (long) first.length() * second.length(),
+                "Edit distance evaluates every non-base cell exactly once");
+    }
+
+    /** Exhaustively explore edit choices on short prefixes without a DP table. */
+    private static int recursiveEditDistance(String first, String second, int row, int column) {
+        if (row == 0) {
+            return column;
+        }
+        if (column == 0) {
+            return row;
+        }
+        if (first.charAt(row - 1) == second.charAt(column - 1)) {
+            return recursiveEditDistance(first, second, row - 1, column - 1);
+        }
+        return 1 + Math.min(recursiveEditDistance(first, second, row - 1, column - 1),
+                Math.min(recursiveEditDistance(first, second, row - 1, column),
+                        recursiveEditDistance(first, second, row, column - 1)));
     }
 
     private static String randomString(Random random, int length) {

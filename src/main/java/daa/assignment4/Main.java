@@ -1,5 +1,6 @@
 package daa.assignment4;
 
+import daa.assignment4.dp.EditDistance;
 import daa.assignment4.dp.LongestCommonSubsequence;
 
 public final class Main {
@@ -27,5 +28,11 @@ public final class Main {
         System.out.println("Second string: " + second);
         System.out.println("LCS length: " + result.length()
                 + " | cells evaluated=" + result.cellsEvaluated());
+
+        String source = "kitten";
+        String target = "sitting";
+        var edits = EditDistance.run(source, target);
+        System.out.println("Edit distance " + source + " -> " + target + ": "
+                + edits.distance() + " | cells evaluated=" + edits.cellsEvaluated());
     }
 }
