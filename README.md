@@ -4,7 +4,7 @@
 
 This Java project studies longest common subsequences (LCS), Levenshtein edit distance, Naive string matching, Knuth-Morris-Pratt (KMP), Rabin-Karp, and Kasai's longest common prefix (LCP) array algorithm.
 
-The first six development milestones implement Kasai, Naive, KMP, Rabin-Karp, table-based LCS, and Levenshtein edit distance, operation counting, a demonstration, and a correctness suite. The experiments and result tables are included; plots and the final discussion will follow. This README is the report; no separate PDF report is required.
+The project implements all six algorithms, operation counting, a demonstration, a correctness suite, reproducible experiments, result tables, and plots. This README is the full report.
 
 ## How to run
 
@@ -14,10 +14,11 @@ Use Java JDK 17 or newer. From the project folder on Windows:
 .\run.cmd demo
 .\run.cmd test
 .\run.cmd benchmark
+.\run.cmd plots
 .\run.cmd all
 ```
 
-The launcher compiles the Java sources automatically. `all` runs the tests, demonstration, and benchmark. Benchmarking overwrites `results/results.csv` and `results/tables/summary.md`. Double-clicking `run.cmd` runs the demonstration and waits for a key before closing. No external Java dependencies are required.
+The launcher compiles the Java sources automatically. `all` runs the tests, demonstration, benchmark, and plots. Benchmarking overwrites `results/results.csv` and `results/tables/summary.md`; plotting overwrites the SVGs. Python 3.10+ is required for plots; the launcher creates a local `.venv` and installs the dependencies. Double-clicking `run.cmd` runs the demonstration and waits for a key before closing. No external Java dependencies are required.
 
 Alternatively, compile and run directly from PowerShell:
 
@@ -29,6 +30,13 @@ javac -encoding UTF-8 --release 17 -d $classes $sources
 java -cp $classes daa.assignment4.Main --test
 java -cp $classes daa.assignment4.Main --demo
 java -cp $classes daa.assignment4.Main --benchmark results/results.csv
+```
+
+To regenerate the plots directly from the saved CSV, use Python 3.10 or newer:
+
+```powershell
+python -m pip install -r requirements-plot.txt
+python scripts/plot_results.py
 ```
 
 ## Implementation
@@ -61,7 +69,6 @@ Here `m` and `n` are the two input lengths. Auxiliary space excludes the input s
 | --- | --- | --- | --- | --- | --- |
 | LCS | Equal: diagonal + 1; unequal: max of top and left | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | Allocate and initialize the full table; evaluate all `mn` non-base cells regardless of content. |
 | Edit Distance | Min of deletion + 1, insertion + 1, and diagonal + mismatch cost | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | Initialize the boundary row and column; evaluate all `mn` non-base cells with constant work per cell. |
-
 | Kasai | Extend the shared prefix of adjacent sorted suffixes; reuse its length minus one | O(N) | O(N) | O(N) | Build inverse ranks and validate the supplied permutation and order in linear time. Each successful extension increases the carried length, which decreases at most once per suffix; mismatches occur at most once per suffix. The rank, validation and output arrays use linear space. |
 
 For Kasai, `N` is the text length; suffix-array construction is excluded. For matching, let `N` be text length, `M` pattern length, and `K` the number of returned positions. The output list takes `O(K)` space and is excluded from auxiliary-space bounds. For nonempty patterns:
@@ -76,7 +83,7 @@ KMP scans the full text even when the pattern is longer. For the empty pattern a
 
 Under suitable random-hashing assumptions and with few matches, Rabin-Karp typically takes O(N + M) total time. This implementation uses a fixed hash, so that expected bound is not guaranteed for arbitrary inputs. Many true matches or collisions can require O((N - M + 1) M) verification work.
 
-For nonempty strings these bounds simplify to `O(mn)`. The explicit factors also account for table allocation when either input is empty. The operation counter records exactly `mn` cells, excluding base-case initialization. Suffix-array construction is outside Kasai's bounds. Theoretical bounds are separate from measured execution times.
+For nonempty DP inputs their bounds simplify to `O(mn)`. The explicit factors also account for table allocation when either input is empty. The operation counter records exactly `mn` cells, excluding base-case initialization. Suffix-array construction is outside Kasai's bounds. Theoretical bounds are separate from measured execution times.
 
 ## Experimental setup
 
@@ -88,11 +95,21 @@ The operation column counts non-base DP cells, matching search character compari
 
 ## Results
 
-The [raw CSV](results/results.csv) and [summary tables](results/tables/summary.md) contain all 27 algorithm, size, and workload combinations. Plots and a detailed discussion will be added in the final milestone.
+The [raw CSV](results/results.csv) and [summary tables](results/tables/summary.md) contain all 27 algorithm, size, and workload combinations. The plots show the same five-run means in milliseconds; matching results are separated by whether the pattern is present.
+
+![LCS and edit distance execution time](results/plots/dp_time.svg)
+
+![String matching execution time](results/plots/matching_time.svg)
 
 ## Comparison and discussion
 
-LCS and Edit Distance perform the same number of table-cell updates for a given pair of lengths, even when strings are identical or have no shared characters. Their full tables make the recurrences explicit but require quadratic space for equal input lengths. Equal cell counts do not imply equal execution times because the operations within each cell differ. LCS measures retained order-preserving similarity; Edit Distance measures transformation cost and allows unit-cost substitutions. The saved measurements are available in the result tables; the final milestone will add plots and detailed discussion.
+For strings of length 100, 500, and 1,000, both DP algorithms evaluated exactly 10,000, 250,000, and 1,000,000 cells, consistent with quadratic growth. At length 1,000 the saved means were 2.2042 ms for LCS and 3.7467 ms for Edit Distance. These algorithms solve different problems; equal cell counts do not imply equal elapsed time because the work in each cell differs. Their full tables require quadratic space at equal lengths.
+
+On the 100,000-character present-pattern workload, Naive, KMP, and Rabin-Karp averaged 0.2317, 0.1262, and 0.6570 ms, respectively. Naive and KMP made 103,906 and 103,747 search comparisons; Rabin-Karp made 16 verification comparisons, but also computed rolling hashes at every window. Those hash operations are not in the character-comparison count, helping explain why fewer comparisons did not mean a shorter measured time. The absent workload similarly produced zero Rabin-Karp verification comparisons and still required hash updates. This single fixed random workload does not establish a general speed ranking: repetitive patterns and different alphabets can change the work substantially.
+
+Kasai's counted prefix comparisons grew from 1,972 at length 1,000 to 19,970 at length 10,000, consistent with linear work. Its saved mean was 0.1166 ms at 1,000 and 0.3657 ms at 10,000, but the 5,000-character mean was higher than the 10,000-character mean. JVM compilation, allocation, garbage collection, and other system activity can influence short runs. The timed method includes validation and result allocation but excludes suffix-array construction, so these timings do not measure the cost of a complete suffix-array pipeline.
+
+Each point is the mean of only five runs on one generated input per size. Warm-up does not remove all JVM effects, and observed times are not complexity bounds. Operation counts provide a complementary, more stable indication of the work for these particular inputs.
 
 ## Testing
 
@@ -108,17 +125,7 @@ Kasai tests include the manually verified `banana` suffix and LCP arrays, empty 
 
 ## Conclusion
 
-All required algorithms are implemented and tested. LCS and Edit Distance use full DP tables with quadratic time and space for equal nonempty input lengths. The final conclusion will compare all six algorithms after the plots and experimental discussion are complete.
-
-## Development plan
-
-1. Initialize the Java project, table-based LCS, correctness suite, launchers, and report structure.
-2. Implement Levenshtein edit distance with recurrence explanation and tests.
-3. Implement Naive and KMP matching, LPS preprocessing, and shared occurrence tests.
-4. Implement Rabin-Karp rolling hashes, collision verification, and three-way matching checks.
-5. Implement Kasai's LCP array from a supplied suffix array, with manually verified examples.
-6. Add reproducible benchmarks, operation counts, raw CSV, and result tables for every required size.
-7. Add plots and complete the complexity table, experimental discussion, and final report.
+LCS measures order-preserving similarity, while Edit Distance measures transformation cost; their full DP tables trade quadratic space for straightforward recurrences. Naive matching is simple, KMP guarantees linear search after preprocessing, and Rabin-Karp uses rolling hashes but must verify collisions and can degrade on repeated matches. Kasai builds adjacent-suffix LCP values in linear time and space once a sorted suffix array is available. The tests and measurements support these implementations on the covered inputs, while the observed timings remain specific to this experiment.
 
 ## AI acknowledgement
 
