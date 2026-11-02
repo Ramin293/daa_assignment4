@@ -2,9 +2,12 @@ package daa.assignment4;
 
 import daa.assignment4.dp.EditDistance;
 import daa.assignment4.dp.LongestCommonSubsequence;
+import daa.assignment4.lcp.Kasai;
 import daa.assignment4.matching.Kmp;
 import daa.assignment4.matching.Naive;
 import daa.assignment4.matching.RabinKarp;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
@@ -19,6 +22,7 @@ public final class CorrectnessSuite {
         longestCommonSubsequences();
         editDistances();
         stringMatching();
+        longestCommonPrefixes();
         return "PASS: " + checks + " checks";
     }
 
@@ -179,6 +183,50 @@ public final class CorrectnessSuite {
         require(Naive.run(text, pattern).positions().equals(expected), "Naive occurrences match");
         require(Kmp.run(text, pattern).positions().equals(expected), "KMP occurrences match");
         require(RabinKarp.run(text, pattern).positions().equals(expected), "Rabin-Karp occurrences match");
+    }
+
+    private static void longestCommonPrefixes() {
+        require(Kasai.run("banana", new int[] {5, 3, 1, 0, 4, 2}).lengths()
+                .equals(List.of(0, 1, 3, 0, 0, 2)), "Known banana suffixes and LCP");
+        require(Kasai.run("", new int[] {}).lengths().isEmpty(), "Empty text has empty LCP");
+        require(Kasai.run("a", new int[] {0}).lengths().equals(List.of(0)), "Single suffix");
+        require(Kasai.run("aaaa", new int[] {3, 2, 1, 0}).lengths()
+                .equals(List.of(0, 1, 2, 3)), "Repeated suffix prefixes");
+        expectThrows(NullPointerException.class, () -> Kasai.run(null, new int[] {}));
+        expectThrows(NullPointerException.class, () -> Kasai.run("a", null));
+        expectThrows(IllegalArgumentException.class, () -> Kasai.run("ab", new int[] {0}));
+        expectThrows(IllegalArgumentException.class, () -> Kasai.run("ab", new int[] {0, 0}));
+        expectThrows(IllegalArgumentException.class, () -> Kasai.run("ab", new int[] {-1, 1}));
+        expectThrows(IllegalArgumentException.class, () -> Kasai.run("ab", new int[] {0, 2}));
+        expectThrows(IllegalArgumentException.class, () -> Kasai.run("ab", new int[] {1, 0}));
+        expectThrows(IllegalArgumentException.class, () -> Kasai.run("aaa", new int[] {0, 1, 2}));
+        expectThrows(UnsupportedOperationException.class,
+                () -> Kasai.run("a", new int[] {0}).lengths().clear());
+        Random random = new Random(42);
+        for (int trial = 0; trial < 500; trial++) {
+            String text = randomString(random, random.nextInt(30));
+            Integer[] starts = new Integer[text.length()];
+            for (int index = 0; index < starts.length; index++) {
+                starts[index] = index;
+            }
+            Arrays.sort(starts, Comparator.comparing(text::substring));
+            int[] suffixArray = Arrays.stream(starts).mapToInt(Integer::intValue).toArray();
+            List<Integer> expected = new ArrayList<>();
+            for (int index = 0; index < suffixArray.length; index++) {
+                int common = 0;
+                if (index > 0) {
+                    int left = suffixArray[index - 1];
+                    int right = suffixArray[index];
+                    while (left + common < text.length() && right + common < text.length()
+                            && text.charAt(left + common) == text.charAt(right + common)) {
+                        common++;
+                    }
+                }
+                expected.add(common);
+            }
+            require(Kasai.run(text, suffixArray).lengths().equals(expected),
+                    "Kasai matches direct adjacent-suffix comparisons");
+        }
     }
 
     private static String randomString(Random random, int length) {

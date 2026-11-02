@@ -4,7 +4,7 @@
 
 This Java project studies longest common subsequences (LCS), Levenshtein edit distance, Naive string matching, Knuth-Morris-Pratt (KMP), Rabin-Karp, and Kasai's longest common prefix (LCP) array algorithm.
 
-The first four development milestones implement Naive, KMP, and Rabin-Karp matching, table-based LCS, and Levenshtein edit distance, operation counting, a demonstration, and a correctness suite. The remaining algorithms and experimental report will be added in the commits listed below. This README is the report; no separate PDF report is required.
+The first five development milestones implement Kasai, Naive, KMP, Rabin-Karp, table-based LCS, and Levenshtein edit distance, operation counting, a demonstration, and a correctness suite. The remaining algorithms and experimental report will be added in the commits listed below. This README is the report; no separate PDF report is required.
 
 ## How to run
 
@@ -47,6 +47,10 @@ The three choices delete the final source character, insert the final target cha
 
 `RabinKarp.run` hashes the pattern and first text window with base 256 and modulus 1,000,000,007. Rolling the hash removes the outgoing code unit and adds the incoming one. Equal hashes are verified character by character, preventing false matches from collisions. Search comparisons count these character checks; hash arithmetic is not counted. Preprocessing comparisons are zero because hashing compares no characters. Empty patterns and returned indices follow the same rules as the other matchers.
 
+`Kasai.run` accepts a text and its lexicographically sorted suffix array, whose entries are UTF-16 starting indices. For each position `i > 0`, `LCP[i]` is the length of the common prefix of the suffixes at `suffixArray[i - 1]` and `suffixArray[i]`; `LCP[0]` is zero. It builds inverse ranks and scans suffixes in text order, retaining all but one character of the previous common prefix before extending it. It returns immutable LCP values and counts the character comparisons used to extend them, including mismatches but excluding input validation. The supplied array must be a sorted permutation of all text indices; invalid arrays and null inputs are rejected. Empty text uses an empty array. Sorting is validated in linear time using each suffix's first code unit and the supplied rank of its tail; the empty tail has rank -1. The algorithm does not construct the suffix array.
+
+For `banana`, the suffixes in order are `a`, `ana`, `anana`, `banana`, `na`, `nana`. The supplied suffix array is `[5, 3, 1, 0, 4, 2]` and the resulting LCP array is `[0, 1, 3, 0, 0, 2]`.
+
 ## Complexity analysis
 
 Here `m` and `n` are the two input lengths. Auxiliary space excludes the input strings and constant-size result.
@@ -56,7 +60,9 @@ Here `m` and `n` are the two input lengths. Auxiliary space excludes the input s
 | LCS | Equal: diagonal + 1; unequal: max of top and left | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | Allocate and initialize the full table; evaluate all `mn` non-base cells regardless of content. |
 | Edit Distance | Min of deletion + 1, insertion + 1, and diagonal + mismatch cost | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | O((m + 1)(n + 1)) | Initialize the boundary row and column; evaluate all `mn` non-base cells with constant work per cell. |
 
-For matching, let `N` be text length, `M` pattern length, and `K` the number of returned positions. The output list takes `O(K)` space and is excluded from auxiliary-space bounds. For nonempty patterns:
+| Kasai | Extend the shared prefix of adjacent sorted suffixes; reuse its length minus one | O(N) | O(N) | O(N) | Build inverse ranks and validate the supplied permutation and order in linear time. Each successful extension increases the carried length, which decreases at most once per suffix; mismatches occur at most once per suffix. The rank, validation and output arrays use linear space. |
+
+For Kasai, `N` is the text length; suffix-array construction is excluded. For matching, let `N` be text length, `M` pattern length, and `K` the number of returned positions. The output list takes `O(K)` space and is excluded from auxiliary-space bounds. For nonempty patterns:
 
 | Algorithm | Main operation | Preprocessing | Best-case search | Worst-case search | Auxiliary space | Justification |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -68,7 +74,7 @@ KMP scans the full text even when the pattern is longer. For the empty pattern a
 
 Under suitable random-hashing assumptions and with few matches, Rabin-Karp typically takes O(N + M) total time. This implementation uses a fixed hash, so that expected bound is not guaranteed for arbitrary inputs. Many true matches or collisions can require O((N - M + 1) M) verification work.
 
-For nonempty strings these bounds simplify to `O(mn)`. The explicit factors also account for table allocation when either input is empty. The operation counter records exactly `mn` cells, excluding base-case initialization. Bounds for the remaining algorithms will accompany their implementations. Theoretical bounds are separate from measured execution times.
+For nonempty strings these bounds simplify to `O(mn)`. The explicit factors also account for table allocation when either input is empty. The operation counter records exactly `mn` cells, excluding base-case initialization. Suffix-array construction is outside Kasai's bounds. Theoretical bounds are separate from measured execution times.
 
 ## Experimental setup
 
@@ -92,11 +98,13 @@ An independent exhaustive reference enumerates subsequences on 200 reproducible 
 
 Edit Distance tests cover identical strings, either or both inputs empty, individual substitutions, insertions and deletions, mixed edits, completely different strings, repeated characters, transposition requiring two edits, case sensitivity, whitespace, punctuation, Cyrillic characters, and null rejection. Another 200 reproducible pairs of strings of length at most five are checked in both directions against an exhaustive recursive reference without a DP table. Each distance check also verifies the `mn` cell count. The complete suite also includes the matching checks described below.
 
-Matching tests cover beginning, middle, end, overlapping occurrences, absent and longer patterns, empty text and pattern, and KMP fallback. On 500 fixed-seed random pairs, all three algorithms are checked against an independent `String.startsWith` reference. Null rejection and immutable results are also tested. A deliberately constructed hash collision verifies that Rabin-Karp checks characters before reporting an occurrence. The full suite passes 3200 checks.
+Matching tests cover beginning, middle, end, overlapping occurrences, absent and longer patterns, empty text and pattern, and KMP fallback. On 500 fixed-seed random pairs, all three algorithms are checked against an independent `String.startsWith` reference. Null rejection and immutable results are also tested. A deliberately constructed hash collision verifies that Rabin-Karp checks characters before reporting an occurrence. The full suite passes 3713 checks.
+
+Kasai tests include the manually verified `banana` suffix and LCP arrays, empty and single-character strings, repeated characters, invalid permutations and ordering, null inputs, and immutable results. On 500 reproducible short strings, suffixes are independently sorted and each adjacent pair is compared directly to check every LCP value.
 
 ## Conclusion
 
-The first four milestones provide runnable, verified LCS, Edit Distance, Naive, KMP, and Rabin-Karp implementations. Both use full DP tables with quadratic time and space for equal nonempty input lengths. The final conclusion will compare all six algorithms after the remaining implementations and experiments are complete.
+All required algorithms are implemented and tested. LCS and Edit Distance use full DP tables with quadratic time and space for equal nonempty input lengths. The final conclusion will compare all six algorithms after experiments are complete.
 
 ## Development plan
 

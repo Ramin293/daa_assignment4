@@ -1,5 +1,6 @@
 package daa.assignment4;
 
+import daa.assignment4.lcp.Kasai;
 import daa.assignment4.matching.Kmp;
 import daa.assignment4.matching.Naive;
 import daa.assignment4.matching.RabinKarp;
@@ -35,6 +36,9 @@ public final class Main {
         System.out.println("Naive matches: " + Naive.run("abababa", "aba").positions());
         System.out.println("KMP matches: " + Kmp.run("abababa", "aba").positions());
         System.out.println("Rabin-Karp matches: " + RabinKarp.run("abababa", "aba").positions());
+
+        int[] suffixArray = {5, 3, 1, 0, 4, 2};
+        System.out.println("banana LCP: " + Kasai.run("banana", suffixArray).lengths());
 
         String source = "kitten";
         String target = "sitting";
